@@ -25,26 +25,33 @@ labels = np.loadtxt(labels_file, str, delimiter='\t')
 # In[9]:
 ###__________________________________________________________________________________________________________________________________
 
-
-#with open(caffe_root +'my_session/LIBRARY/MAX_Outputs/VGG-19patch_val.pickle') as r:  # Python 3: open(..., 'wb')
-#	PATCH = pickle.load(r)[2]
+import os
+if not os.path.exists('../figures'):
+		os.mkdir('../figures')
 
 name_net = 'VGG-19'
 
 print('We start analysis for net: ' + name_net)
 
-class StrToBytes:
-    def __init__(self, fileobj):
-        self.fileobj = fileobj
-    def read(self, size):
-        return self.fileobj.read(size).encode()
-    def readline(self, size=-1):
-        return self.fileobj.readline(size).encode()
+'''
+Data obtained for local color modifications of segments
 
+MAX is the maximal response of the kernels
+GREY the responso of the kernels to the segments in black and white
+MM* are the kernels' activations to color manipulations within segments *
+CLASS are the class given by the models for all stimuli.
+Good_Class gives the correct class for all stimuli
+'''
 r = open('../pickles/' + name_net + '_patches_4k_Sat.pickle','rb') 
 MAX, GREY,MM1,MM2,MM3,MM4,ROT,CLASS,Good_Class= pickle.load(r, encoding="bytes")
 r.close()
 
+
+'''
+Data obtained for global color modifications of entire images
+
+Same as before without MAX and for the whole image modif, CLASS_GREY is the classification of the model for B&W stimuli
+'''
 r = open('../pickles/' + name_net + '_patches_GREY_ROT.pickle','rb')
 GREY_whole, ROT_whole, CLASS_whole, CLASS_GREY, Good_Class_whole = pickle.load(r, encoding="bytes")
 r.close()
@@ -61,7 +68,7 @@ HUE_SAT = list() # hue change with saturation
 M_HSENSALL = list() # hue sensitivity all seg
 SENSITIVITY = list() # General color sensitivity
 
-ARG_HSENS1 = list()
+ARG_HSENS1 = list() # indexes of highest response == preferred hues
 ARG_HSENS2 = list()
 ARG_HSENS3 = list()
 ARG_HSENS4 = list()
@@ -85,49 +92,31 @@ for l in range(0,len(CLASS_whole)):
 		CLASS_GREY[l][k] = (CLASS_GREY[l][k] == Good_Class[l][k])*1
 
 for l in range(0,len(MM1)):
-	MM1[l][np.isinf(MM1[l])] = 1
-	MM2[l][np.isinf(MM2[l])] = 1
-	MM3[l][np.isinf(MM1[l])] = 1
-	MM4[l][np.isinf(MM2[l])] = 1
-	ROT[l][np.isinf(ROT[l])] = 1
-	MM1[l][np.isnan(MM1[l])] = 1
-	MM3[l][np.isnan(MM3[l])] = 1
-	MM2[l][np.isnan(MM2[l])] = 1
-	MM4[l][np.isnan(MM4[l])] = 1
-	ROT[l][np.isnan(ROT[l])] = 1
-	MM1[l][MM1[l] == 0] = 1
-	MM2[l][MM2[l] == 0] = 1
-	ROT[l][ROT[l] == 0] = 1
-	T = np.nanmax((MM1[l],MM2[l],MM3[l],MM4[l]),axis = (0,-1)) #max across partial kernels and hue
-	Tpk = np.nanmax((MM1[l],MM2[l],MM3[l],MM4[l]),axis = -1) # max across hue
-	P = np.nanmin((MM1[l],MM2[l],MM3[l],MM4[l]),axis = (0,-1)) # min across kernels and hue
+	MM1[l][np.amax(MM1[l][:],axis = -1)==0] = 1.0 #There are a few instances where at 0 chroma, the kernel is absolutely non responsive. In which case the computation of hue selectivity is 0/0 and generates nan value. To avoid subsequent issues we put these rare cases at 1.
+	MM2[l][np.amax(MM2[l][:],axis = -1)==0] = 1.0
+	MM3[l][np.amax(MM3[l][:],axis = -1)==0] = 1.0
+	MM4[l][np.amax(MM4[l][:],axis = -1)==0] = 1.0
+	T = np.amax((MM1[l],MM2[l],MM3[l],MM4[l]),axis = (0,-1)) #max across partial kernels and hue
+	Tpk = np.amax((MM1[l],MM2[l],MM3[l],MM4[l]),axis = -1) # max across hue
+	P = np.amin((MM1[l],MM2[l],MM3[l],MM4[l]),axis = (0,-1)) # min across kernels and hue
 	BIG_MAX = np.amax((np.amax(T,axis = 1),np.amax(ROT_whole[l],axis = 1),GREY[l] ),axis =0)
-	#SENSITIVITY.append(np.amax((np.amax(T,axis = 1),np.amax(ROT_whole[l],axis = 1),GREY[l] ),axis =0)- np.amin((np.amin(T,axis = 1),np.amin(ROT_whole[l],axis = 1),GREY[l] ),axis =0))/T)
 	SENSITIVITY.append((T-P)/T)
 	RESP.append(((T.T-GREY[l]).T)/T)
 	C2A.append((T.T-GREY[l]).T/(T.T+GREY[l]).T)
-	#RESP.append((MAX[l] - GREY[l])/MAX[l])
-	M_HSENS1.append((np.nanmax(MM1[l],axis = -1)-np.nanmin(MM1[l],axis = -1))/np.nanmax(MM1[l],axis = -1))
-	M_HSENS1[l][np.isnan(M_HSENS1[l])] = 0
-	M_HSENS2.append((np.nanmax(MM2[l],axis = -1)-np.nanmin(MM2[l],axis = -1))/np.nanmax(MM2[l],axis = -1))
-	M_HSENS2[l][np.isnan(M_HSENS2[l])] = 0
-	M_HSENS3.append((np.nanmax(MM3[l],axis = -1)-np.nanmin(MM3[l],axis = -1))/np.nanmax(MM3[l],axis = -1))
-	M_HSENS3[l][np.isnan(M_HSENS3[l])] = 0
-	M_HSENS4.append((np.nanmax(MM4[l],axis = -1)-np.nanmin(MM4[l],axis = -1))/np.nanmax(MM4[l],axis = -1))
-	M_HSENS4[l][np.isnan(M_HSENS4[l])] = 0
-	M_ROT.append((np.nanmax(ROT[l],axis = -1)-np.nanmin(ROT[l],axis = -1))/np.nanmax(ROT[l],axis = -1))
+	M_HSENS1.append((np.amax(MM1[l],axis = -1)-np.amin(MM1[l],axis = -1))/np.amax(MM1[l],axis = -1))
+	M_HSENS2.append((np.amax(MM2[l],axis = -1)-np.amin(MM2[l],axis = -1))/np.amax(MM2[l],axis = -1))
+	M_HSENS3.append((np.amax(MM3[l],axis = -1)-np.amin(MM3[l],axis = -1))/np.amax(MM3[l],axis = -1))
+	M_HSENS4.append((np.amax(MM4[l],axis = -1)-np.amin(MM4[l],axis = -1))/np.amax(MM4[l],axis = -1))
+	M_ROT.append((np.amax(ROT[l],axis = -1)-np.amin(ROT[l],axis = -1))/np.amax(ROT[l],axis = -1))
 	hsensall = np.array([M_HSENS1[l],M_HSENS1[l],M_HSENS1[l],M_HSENS1[l]])
 	hsensall = np.moveaxis(hsensall,0,-1)
 	M_HSENSALL.append(hsensall)
-	#SensSAT = 1 - np.nanmin(hsensall[:,1:],axis = 1)/np.nanmax(hsensall[:,1:],axis = 1) # change in sensitivity with saturation
-	SensSAT = 1 - np.nanmin(Tpk[:,:,:],axis = -1)/np.nanmax(Tpk[:,:,:],axis = -1) # change in max response with saturation
-	RespSAT = 1 - np.nanmin(T,axis = -1)/np.nanmax(T,axis = -1) # Saturation responsivity
-	#Sat1 = 1 - np.amin()
-	#M_SAT.append()
-	ARG_HSENS1.append(np.nanargmax(MM1[l],axis = -1)*15)
-	ARG_HSENS2.append(np.nanargmax(MM2[l],axis = -1)*15)
-	ARG_HSENS3.append(np.nanargmax(MM3[l],axis = -1)*15)
-	ARG_HSENS4.append(np.nanargmax(MM4[l],axis = -1)*15)
+	SensSAT = 1 - np.amin(Tpk[:,:,:],axis = -1)/np.amax(Tpk[:,:,:],axis = -1) # change in max response with saturation
+	RespSAT = 1 - np.amin(T,axis = -1)/np.amax(T,axis = -1) # Saturation responsivity
+	ARG_HSENS1.append(np.argmax(MM1[l],axis = -1)*15)
+	ARG_HSENS2.append(np.argmax(MM2[l],axis = -1)*15)
+	ARG_HSENS3.append(np.argmax(MM3[l],axis = -1)*15)
+	ARG_HSENS4.append(np.argmax(MM4[l],axis = -1)*15)
 	argall = np.array([ARG_HSENS1[l], ARG_HSENS2[l], ARG_HSENS3[l], ARG_HSENS4[l]])
 	HueSat = np.absolute((((argall[:,:,-1] - argall[:,:,1]) + 180)%360 - 180))
 	SENS_SAT.append(SensSAT)
@@ -209,7 +198,7 @@ selecrott1,selecrott2,selecrott3,Mean_selec_rot,Std_selec_rot = F.RESPO(M_ROT,t1
 #PLOT_FIGURE('CSROT',selecrott1,selecrott2,selecrott3,Mean_selec_rot)
 
 
-	# Plot distribution ROT
+
 Treshs = np.array([0,1/8,2/8,3/8,4/8,5/8,6/8,7/8])
 DIS_M = np.zeros((len(CLASS),len(Treshs)))
 
@@ -255,36 +244,80 @@ for l in range(len(CLASS)):
 
 # In[9]:
 #-------------------------------------------------------------------------------------------------------------
-#### Proportion of color selective kernels
+#### Preferred hues
 
-ARG_SEL = list()
-Nb_col_select = list()
+'''
+Part of the script where we compute the preferred hues of our models. The tricky part is in the case of segments of the same kernel selective to the same hue(+-30°): we then consider the kernel selective for only one hue, the mean.  
+
+'''
+
+import itertools # Library for smart generators. Allow combinations of elements for instance
+
+def mean_angle(angle_array):
+	'''
+	Functions that computes the angular mean of several angles, within the input array.
+	Input:
+		angle_array: 
+	'''
+	meansin1 = np.arcsin(np.mean(np.sin(angle_array*np.pi/180)))*180/np.pi
+	meancos1 = np.arccos(np.mean(np.cos(angle_array*np.pi/180)))*180/np.pi
+	return meancos1*np.sign(meansin1)
+
+
+ARG_SEL = list() # List of preferred hues
+Nb_col_select = list() # list of the number of preferred hues per kernel
 for l in range(len(M_HSENS1)):
-	nb_kernels = len(M_HSENS1[l])
-	P_sel = np.array([np.amax(M_HSENS1[l], axis = -1) > t2, np.amax(M_HSENS2[l], axis = -1) > t2, np.amax(M_HSENS3[l], axis = -1) > t2, np.amax(M_HSENS4[l], axis = -1) > t2])
-	Nb_col_select.append( np.sum(P_sel,axis = 0))
-	Arg_sel = np.zeros(P_sel.shape)
-	Arg_sel[:] = np.nan
-	Arg_sel[P_sel] = np.array([ARG_HSENS1[l][range(len(ARG_HSENS1[l])),np.argmax(M_HSENS1[l], axis = -1)], ARG_HSENS2[l][range(len(ARG_HSENS2[l])),np.argmax(M_HSENS2[l], axis = -1)], ARG_HSENS3[l][range(len(ARG_HSENS3[l])),np.argmax(M_HSENS3[l], axis = -1)], ARG_HSENS4[l][range(len(ARG_HSENS4[l])),np.argmax(M_HSENS4[l], axis = -1)]])[P_sel]
-	#ARG_SEL.append(Arg_sel)
-	for i in range(nb_kernels):
-		for j in range(len(Arg_sel[:,i])-1):
-			start = Arg_sel[j,i]
-			if np.isnan(Arg_sel[j,i].any()):
-				continue
-			else:
-				for k in range(j+1,len(Arg_sel[:,i])):
-					if np.isnan(Arg_sel[k,i].any()):
-						continue
+	nb_kernels = len(M_HSENS1[l]) # nb of kernels
+	P_sel = np.array([np.amax(M_HSENS1[l], axis = -1) > t2, 
+						np.amax(M_HSENS2[l], axis = -1) > t2, 
+						np.amax(M_HSENS3[l], axis = -1) > t2, 
+						np.amax(M_HSENS4[l], axis = -1) > t2]) # array of hue selective segments [ nb_segments, nb_kernels]
+	Nb_col_select.append( np.sum(P_sel,axis = 0)) # nb of hue selective segments per kernels [nb_layers][ nb_kernels]
+	PREF_HUES = np.array([ARG_HSENS1[l][range(len(ARG_HSENS1[l])),np.argmax(M_HSENS1[l], axis = -1)], 
+								ARG_HSENS2[l][range(len(ARG_HSENS2[l])),np.argmax(M_HSENS2[l], axis = -1)], 
+								ARG_HSENS3[l][range(len(ARG_HSENS3[l])),np.argmax(M_HSENS3[l], axis = -1)], 
+								ARG_HSENS4[l][range(len(ARG_HSENS4[l])),np.argmax(M_HSENS4[l], axis = -1)]]) # array of preferred hues, all hue selectivities [nb segments, nb kernels]
+	Arg_sel = list()  # List of preferred hues for this layer
+	for idx in np.where(Nb_col_select[l] > 0)[0]: # in the case of color slective kernels
+		pref_hues = PREF_HUES[P_sel[:,idx], idx] # pref hues found for kernel ''idx'' on hue selective segments
+		print(pref_hues)
+		if len(pref_hues) > 1: # if more than one segment is hue selective
+			pairs = np.array([i for i in itertools.combinations(pref_hues,2)]) # compute all possible combinations of pairs
+			diffs = [np.arccos(np.cos((i[0] -i[1])*np.pi/180))*180/np.pi for i in pairs] # angle diffs for each pair
+			crit = np.array(diffs)<45 # boolean array if angular diff is bellow a certain threshold, in which case we consider them similar and take the mean
+			if True in crit: 
+				good_hues = np.array([]) # define a new array with the correct preferred hues
+				for i in pref_hues:
+					if i not in pairs[crit]: # if a hue is not a doublon, save it in good_hues
+						good_hues = np.concatenate((good_hues,np.array([i])))
+				samehue1 = np.array([])
+				samehue2 = np.array([]) # up to 2 possible pairs with similar hues (4 segments)
+				for i in np.where(crit)[0]: # where there is a doublon
+					if len(samehue1) == 0: # if its the first step
+						samehue1 = pairs[i] # we save the pair as the same hue
 					else:
-						if np.absolute(start - Arg_sel[k,i]) <= 30:
-							Arg_sel[j,i] = np.nanmean((start,Arg_sel[k,i]))
-							Arg_sel[k,i] = np.nan
-							Nb_col_select[l][i] -= 1
-	#Nb_col_select.append( np.sum(P_sel,axis = 0))
+						if True in (((samehue1 - pairs[i][0])<45) | ((samehue1 - pairs[i][1])<45)):
+							samehue1 = np.concatenate((samehue1,pairs[i])) # if it is not the first step and at least one of the new doublon's element is equal to the saved one, then we save it as being the same hue
+						else:
+							if len(samehue2) == 0: # otherwise we save it as a new hue
+								samehue2 = pairs[i]
+							else:
+								if True in (((samehue2 - pairs[i][0])<45) | ((samehue2 - pairs[i][1])<45)):
+									samehue2 = np.concatenate((samehue2,pairs[i]))
+						
+				hue1 = mean_angle(samehue1) # we compute the mean of the cluster of the first redundant hue
+				good_hues = np.concatenate((good_hues,np.array([hue1]))) # we save this mean as good hue
+				if len(samehue2) >0: # if there is a second redundant hue, we compute the mean
+					#print((l,samehue2))
+					hue2 = np.array([mean_angle(samehue2)])
+					good_hues = np.concatenate((good_hues, hue2)) # and save it as good hue
+				pref_hues = good_hues
+			Nb_col_select[l][idx] = len(pref_hues) # we then rectify the number of hues
+		
+		Arg_sel.append(pref_hues) # update the list of preferred hues
 	ARG_SEL.append(Arg_sel)
 
-print(np.sum(Nb_col_select[-1]==4))
+
 
 nb_lay = len(M_HSENS1)
 Theta = np.arange(0,2*np.pi,2*np.pi/nb_lay)
