@@ -14,32 +14,35 @@ def DEFINE_PLT_RC(type = 1):
     plt.rc('figure', figsize = (7,5))     # fig size bigger
     if type == 0:
         #plt.rc('font', weight='bold')    # bold fonts are easier to see
+        plt.rc('font', size=8.5) # thicker black lines
         plt.rc('xtick', labelsize=7.5)
         plt.rc('ytick', labelsize=7.5)# tick labels bigger
         plt.rc('axes', labelsize=8.5)     # tick labels bigger
         plt.rc('lines', lw=2.5) # thicker black lines
-        plt.rc('text', fontsize=8.5) # thicker black lines
     elif type == 1:
         #plt.rc('font', weight='bold')    # bold fonts are easier to see
+        plt.rc('font', size=17) # thicker black lines
         plt.rc('xtick', labelsize=15)     # tick labels bigger
         plt.rc('ytick', labelsize=15)     # tick labels bigger
         plt.rc('axes', labelsize=17)     # tick labels bigger
         plt.rc('lines', lw=5) # thicker black lines
-        plt.rc('text', fontsize=17) # thicker black lines
+        #plt.rc('text', fontsize=17) # font of text
     elif type == 0.5:
         #plt.rc('font', weight='bold')    # bold fonts are easier to see
+        plt.rc('font', size=35) # thicker black lines
         plt.rc('xtick', labelsize=30)     # tick labels bigger
         plt.rc('ytick', labelsize=30)     # tick labels bigger
         plt.rc('axes', labelsize=35)     # tick labels bigger
         plt.rc('lines', lw=10) # thicker black lines
-        plt.rc('text', fontsize=35) # thicker black lines
+        #plt.rc('text', fontsize=35) # thicker black lines
     elif type == 0.33:
         #plt.rc('font', weight='bold')    # bold fonts are easier to see
+        plt.rc('font', size=28) # thicker black lines
         plt.rc('xtick', labelsize=24)     # tick labels bigger
         plt.rc('ytick', labelsize=24)     # tick labels bigger
         plt.rc('axes', labelsize=28)     # tick labels bigger
         plt.rc('lines', lw=7.5) # thicker black lines
-        plt.rc('text', fontsize=28) # thicker black lines
+        #plt.rc('text', fontsize=28) # thicker black lines
         
 def respo(X,t):
 	return np.sum((np.nanmax(X[:,1:],axis = -1)>t)*1)/(np.nanmean(X[:,1:],axis = -1).size)
@@ -164,7 +167,7 @@ def plot_horizontal_histo(DATA, Bins, y_label, title_fig, name_net):
     import math
     step_plot = math.ceil(float(len(DATA))/5)
     
-    lay2dis = range(0,len(DATA)+1,int(step_plot)) # defines which layer to display given that we want to display only 5 and the nets have diferent nb of layers.
+    lay2dis = list(range(0,len(DATA)+1,int(step_plot))) # defines which layer to display given that we want to display only 5 and the nets have diferent nb of layers.
     lay2dis[-1] = len(DATA)-1
     
     # definitions for the axes
@@ -250,17 +253,15 @@ def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
     import math
     step_plot = math.ceil(float(len(DATA))/5)
     
-    lay2dis = range(0,len(DATA)+1,int(step_plot)) # defines which layer to display given that we want to display only 5 and the nets have diferent nb of layers.
+    lay2dis = list(range(0,len(DATA)+1,int(step_plot))) # defines which layer to display given that we want to display only 5 and the nets have diferent nb of layers.
     lay2dis[-1] = len(DATA)-1
     
     # definitions for the axes
     left, width = 0.12, 0.85
     bottom, height = 0.12, 0.15
-    #bottom_h = left_h = left + width + 0.01
     
     rect_histy1 = [left, bottom, width, height]
     
-    #rect_histx = [left, bottom_h, width, 0.2]
     rect_histy2 = [left, bottom + height + 0.03, width, height]
     rect_histy3 = [left, bottom + height + 0.03 + height + 0.03, width, height]
     rect_histy4 = [left, bottom + height + 0.03 + height + 0.03 + height + 0.03, width, height]
@@ -272,11 +273,11 @@ def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
     
     ax1 = plt.axes(rect_histy1)
     
-    #hist_hue = np.histogram( np.concatenate((ARG_HSENS1[i][M_HSENS1[i]>t2],ARG_HSENS2[i][M_HSENS2[i]>t2])),bins = Bins )
+
     X = DATA[lay2dis[0]][~np.isnan(DATA[lay2dis[0]])]
     hist_hue = np.histogram( X,bins = Bins )
     Y = (hist_hue[0])/X.size
-    ax1.bar(hist_hue[1][:-1] - width_bars/2,Y, width = width_bars,color = 'k')
+    ax1.bar(hist_hue[1][:-1],Y, width = width_bars,align = 'edge',color = 'k')
     if mean == True:
         ax1.vlines(X.mean(),0,1, color = 'red')
     
@@ -284,7 +285,7 @@ def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
     X = DATA[lay2dis[1]][~np.isnan(DATA[lay2dis[1]])]
     hist_hue = np.histogram( X,bins = Bins )
     Y = (hist_hue[0])/X.size
-    ax2.bar(hist_hue[1][:-1] - width_bars/2, Y, width  = width_bars,color = 'k')
+    ax2.bar(hist_hue[1][:-1], Y, width  = width_bars,align = 'edge',color = 'k')
     if mean == True:
         ax2.vlines(X.mean(),0,1, color = 'red')
 
@@ -292,7 +293,7 @@ def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
     X = DATA[lay2dis[2]][~np.isnan(DATA[lay2dis[2]])]
     hist_hue = np.histogram( X,bins = Bins )
     Y = (hist_hue[0])/X.size
-    ax3.bar(hist_hue[1][:-1] - width_bars/2, Y, width = width_bars,color = 'k')
+    ax3.bar(hist_hue[1][:-1], Y, width = width_bars,align = 'edge',color = 'k')
     if mean == True:
         ax3.vlines(X.mean(),0,1, color = 'red')
     
@@ -300,7 +301,7 @@ def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
     X = DATA[lay2dis[3]][~np.isnan(DATA[lay2dis[3]])]
     hist_hue = np.histogram( X,bins = Bins )
     Y = (hist_hue[0])/X.size
-    ax4.bar(hist_hue[1][:-1] - width_bars/2,Y, width = width_bars,color = 'k')
+    ax4.bar(hist_hue[1][:-1],Y, width = width_bars,align = 'edge',color = 'k')
     if mean == True:
         ax4.vlines(X.mean(),0, 1,color = 'red')
     
@@ -308,7 +309,7 @@ def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
     X = DATA[lay2dis[4]][~np.isnan(DATA[lay2dis[4]])]
     hist_hue = np.histogram( X,bins = Bins )
     Y = (hist_hue[0])/X.size
-    ax5.bar(hist_hue[1][:-1] - width_bars/2, Y, width = width_bars,color = 'k')
+    ax5.bar(hist_hue[1][:-1], Y, width = width_bars,align = 'edge',color = 'k')
     if mean == True:
         ax5.vlines(np.mean(X),0,1, color = 'red')
     #import pdb; pdb.set_trace()
@@ -320,27 +321,27 @@ def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
     ax1.set_yticks([])
     ax1.set_xlabel(y_label)
     ax1.set_ylabel('%s' %str(lay2dis[0]))
-    ax1.set_xlim([0 - width_bars/2,Bins[-1]- width_bars/2])
+    ax1.set_xlim([0,Bins[-1]])
     
     ax2.set_yticks([])
     ax2.set_xticks([])
     ax2.set_ylabel('%s' %str(lay2dis[1]))
-    ax2.set_xlim([0 - width_bars/2,Bins[-1]- width_bars/2])
+    ax2.set_xlim([0 ,Bins[-1]])
     
     ax3.set_yticks([])
     ax3.set_xticks([])
     ax3.set_ylabel('%s' %str(lay2dis[2]))
-    ax3.set_xlim([ 0 - width_bars/2,Bins[-1]- width_bars/2])
+    ax3.set_xlim([ 0 ,Bins[-1]])
     
     ax4.set_yticks([])
     ax4.set_xticks([])
     ax4.set_ylabel('%s' %str(lay2dis[3]))
-    ax4.set_xlim([0- width_bars/2,Bins[-1]- width_bars/2])
+    ax4.set_xlim([0,Bins[-1]])
     
     ax5.set_yticks([])
     ax5.set_xticks([])
     ax5.set_ylabel('%s' %str(lay2dis[4]))
-    ax5.set_xlim([0- width_bars/2,Bins[-1]- width_bars/2])
+    ax5.set_xlim([0,Bins[-1]])
     
     fig.text(0.04, 0.52, 'Layer', ha='center',rotation = 90)
     

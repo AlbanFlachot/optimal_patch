@@ -11,12 +11,6 @@ sys.path.append('../')
 from utils import FUNCTIONS as F # script with a bunch of functions
 from utils import DISPLAYS as D # script with functions to display
 
-caffe_root = '/home/alban/caffe/'  # this file should be run from {caffe_root}/examples (otherwise change this line)
-#sys.path.insert(0, caffe_root + 'python')
-
-# If you get "No module named _caffe", either you have not built pycaffe or you have the wrong path.
-labels_file = caffe_root + 'data/ilsvrc12/synset_words.txt'
-labels = np.loadtxt(labels_file, str, delimiter='\t')
 
 	## Fit functions
 	#____________________________________________________________________________________________________________________
@@ -328,7 +322,6 @@ Lum = 0.2
 (x,y) = F.pol2cart(Sat, Theta)
 
 color_id = F.PCA2RGB(np.array([[np.zeros(nb_lay)+Lum],[x],[y]]).T)+0.5
-#color_id = PCA2RGB(np.array([[Lum],[np.zeros(nb_lay)],[np.zeros(nb_lay)]]).T)+0.55
 color_id = color_id.reshape((len(color_id),3))
 
 D.DEFINE_PLT_RC(type = 0.5)
@@ -336,14 +329,12 @@ D.DEFINE_PLT_RC(type = 0.5)
 fig = plt.figure(1, figsize=(7, 5))
 
 rect_ax1 = [0.1, 0.11, 0.69, 0.85]
-#rect_ax2 = [LEFT+WIDTH+2*LEFT, bottom + height+0.1, WIDTH, HEIGHT]
 
 Bins = np.arange(0,6,1)
 
 ax1 = plt.axes(rect_ax1)
 count =1
 for i in range(0,nb_lay,2):
-	#hist_hue = np.histogram( np.concatenate((ARG_HSENS1[i][M_HSENS1[i]>t2],ARG_HSENS2[i][M_HSENS2[i]>t2])),bins = Bins )
 	h = np.histogram( Nb_col_select[i],bins = Bins )
 	ax1.plot( h[1][:-1], (h[0])/len(Nb_col_select[i]),linestyle = '-',color = color_id[i],label = 'Layer %s' %str(i+1),linewidth = 2)
 	count +=1
@@ -356,8 +347,8 @@ fig.text(0.45, 0.02, 'Nb colors', ha='center',fontsize = 15)
 ax1.legend(bbox_to_anchor=(1.01, 0, 0.275, 0.95), loc=1,
            ncol=1, mode="expand", borderaxespad=0.,fontsize=12)
 
-#fig.tight_layout()
-
+fig.tight_layout()
+plt.show(fig)
 
 
 # In[9]:
@@ -374,13 +365,48 @@ D.plot_vertical_histo(Nb_col_select, np.arange(0,6,1), 'Number of hues', 'hue_co
 
 # In[9]:
 
-#### Horizontal histograms of hue tuning ------------------------------------------------------------------------------
+#### Horizontal & vertical histograms of hue tuning ------------------------------------------------------------------------------
 
 D.DEFINE_PLT_RC()
+hue4_histo = [np.concatenate(arr) for arr in ARG_SEL]
+D.plot_horizontal_histo(hue4_histo, np.arange(0,365,15), 'Hue (degrees)', 'histo_preferred_hues',name_net)
+D.plot_vertical_histo(hue4_histo, np.arange(0,365,15), 'Hue (degrees)', 'histo_preferred_hues',name_net)
 
-D.plot_horizontal_histo(ARG_SEL, np.arange(0,365,15), 'Azimuth (degrees)', 'histo_preferred_hues',name_net)
-D.plot_vertical_histo(ARG_SEL, np.arange(0,365,15), 'Azimuth (degrees)', 'histo_preferred_hues',name_net)
 
+# In[9]:
+
+#### vertical histograms of opponancy ------------------------------------------------------------------------------
+OPP = list()
+D.DEFINE_PLT_RC()
+for l in range(len(ARG_SEL)):
+	dist = np.array([])
+	for k in ARG_SEL[l]:
+		if len(k) == 2:
+			dist = np.concatenate((dist,np.array([np.absolute(k[1] - k[0])])))
+	dist = np.arccos(np.cos(dist*np.pi/180))*180/np.pi
+	OPP.append(dist)
+		
+
+D.plot_vertical_histo(OPP, np.arange(0,190,15), 'Distance between preferred hues (degrees)', 'histo_opponancy',name_net)
+
+FLAT_OPP = np.array([])
+for l in OPP:
+	FLAT_OPP = np.concatenate((FLAT_OPP,l))
+
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+h = np.histogram(FLAT_OPP,bins = np.arange(0,190,15))
+ax.bar(h[1][:-1],h[0].astype(float)/len(FLAT_OPP),width = h[1][1] -h[1][0], align = 'edge', color ='#343837')
+plt.xlabel('Distance between preferred hues (degrees)')
+plt.ylabel('Frequency')
+plt.xticks(range(0,200,30))
+
+fig.tight_layout()
+plt.show()
+fig.savefig('../figures/distance_pref_hues_' + name_net,dpi = 300)
+
+plt.close(fig)
 
 # In[9]:
 
@@ -481,7 +507,7 @@ plt.xlim(0.5,len(CLASS)+0.5)
 #plt.legend(loc='upper center', fontsize = 20)
 fig.tight_layout()
 plt.show()
-fig.savefig('paper/from_correct_to_incorrect_' + name_net, dpi = 300)
+fig.savefig('../figures/from_correct_to_incorrect_' + name_net, dpi = 300)
 plt.close(fig)
 
 print('Proportion of non color senstitive kernels that go from correctly to incorrectly classified is %f ' %prop_miss_non_SENS[-1])
@@ -615,7 +641,7 @@ plt.xlabel('Distance from preferred hue (degrees)')
 plt.ylabel('Accuracy')
 fig.tight_layout()
 plt.show()
-fig.savefig('figures/classification_vs_hue_details_' + name_net, dpi=300)
+fig.savefig('../figures/classification_vs_hue_details_' + name_net, dpi=300)
 plt.close(fig)
 
 #mpl.rcParams['image.cmap'] = 'jet'
@@ -631,7 +657,7 @@ plt.xlabel('Distance from preferred hue (degrees)')
 plt.ylabel('Accuracy')
 fig.tight_layout()
 plt.show()
-fig.savefig('figures/classification_vs_hue_' + name_net, dpi=300)
+fig.savefig('../figures/classification_vs_hue_' + name_net, dpi=300)
 plt.close(fig)
 
 print('Performance drops by %f percents after hue modification for hue selective' %((np.mean(Classification_meant2[-1,1:], axis = 0).max()-np.mean(Classification_meant2[-1,1:], axis = 0).min())/np.mean(Classification_meant2[-1,1:], axis = 0).max()))
@@ -667,7 +693,7 @@ plt.ylim(60,95)
 #plt.legend(loc='upper center', fontsize = 20)
 fig.tight_layout()
 plt.show()
-fig.savefig('figures/classification_vs_hue_details_sat_' + name_net, dpi=300)       # higher res outputs)
+fig.savefig('../figures/classification_vs_hue_details_sat_' + name_net, dpi=300)       # higher res outputs)
 plt.close(fig)
 
 print('Performance drops by %f percents after hue modification 0.25 chroma' %(( np.mean(Classification[-1,1,:,:-1], axis = -1).max() - np.mean(Classification[-1,1,:,:-1], axis = -1).min() )/np.mean(Classification[-1,1,:,:-1], axis = -1).max()))
@@ -695,7 +721,7 @@ plt.xlabel('Rotation angle (degrees)')
 plt.ylabel('Accuracy')
 fig.tight_layout()
 plt.show()
-fig.savefig('figures/classification_whole_image_' + name_net, dpi=300)       # higher res outputs)
+fig.savefig('../figures/classification_whole_image_' + name_net, dpi=300)       # higher res outputs)
 plt.close(fig)
 
 
@@ -714,10 +740,10 @@ print('Performance drops by %f percents after hue modification' %((MEAN_CLASSIFI
 D.DEFINE_PLT_RC(type = 1)
 
 
-'''
+
 
 from scipy.signal import find_peaks as fp
-
+'''
 
 
 def peak_detection(y,show = False):
@@ -767,7 +793,7 @@ for l in range(0,len(CLASS)):
 	P_HSENS4.append(Result_peak_HSENS4)
 	P_ROT.append(Result_peak_rot)'''
 
-[P_HSENS1,P_HSENS2,P_HSENS3,P_HSENS4] = np.load('result_peak_detection_python3.npy')
+[P_HSENS1,P_HSENS2,P_HSENS3,P_HSENS4] = np.load('result_peak_detection_python3.npy',allow_pickle=True)
 
 NB_peaks1 = list()
 NB_peaks2 = list()
@@ -791,12 +817,12 @@ for l in range(len(CLASS)):
 	NB_peaks3.append(nb_peaks3)
 	NB_peaks4.append(nb_peaks4)
 
-Hue = np.arange(0,2*np.pi,2*np.pi/24)
-y = MM1[-1][29,-1,:]
-ydet = np.concatenate((y[-2:],y))
-fp( ydet, height=(np.amax(y))/2, distance=4, prominence = (np.amax(y)/8,y.max()))
+#Hue = np.arange(0,2*np.pi,2*np.pi/24)
+#y = MM1[-1][29,-1,:]
+#ydet = np.concatenate((y[-2:],y))
+#fp( ydet, height=(np.amax(y))/2, distance=4, prominence = (np.amax(y)/8,y.max()))
 
-R1 = F.peak_detection(y, show = False)
+#R1 = F.peak_detection(y, show = False)
 
 
 prop_null = np.zeros(len(CLASS))
@@ -823,33 +849,38 @@ for l in range(0,len(CLASS)):
 
 ### FIGURE
 fig = plt.figure(figsize = (7,7))
-
 rect_ax2 = [0.12, 0.22, 0.84, 0.74]
 
 ax2 = plt.axes(rect_ax2)
 ax2.plot(np.arange(1,len(CLASS)+1),(prop_1+prop_2+prop_3+prop_4)*100,'k',linewidth = 1)
 
-ax2.plot(np.arange(1,len(CLASS)+1),(prop_2+prop_3+prop_4)*100,'k',linewidth = 1)
+ax2.plot(np.arange(1,len(CLASS)+1),(prop_2+prop_3+prop_4)*100,'k')
 ax2.fill_between(np.arange(1,len(CLASS)+1),(prop_1+prop_2+prop_3+prop_4)*100,(prop_2+prop_3+prop_4)*100,color = [1,1,1],label = '1 peak')
 ax2.plot(np.arange(1,len(CLASS)+1),(prop_3+prop_4)*100,'k',linewidth = 1)
 ax2.fill_between(np.arange(1,len(CLASS)+1),(prop_2+prop_3+prop_4)*100,(prop_3+prop_4)*100,color = [0.7,0.70,0.70],label = '2 peaks')
-
 ax2.fill_between(np.arange(1,len(CLASS)+1),(prop_3+prop_4)*100,0,color = [0.4,0.4,0.4],label = '3 peaks')
-
 ax2.set_ylim(0,100,emit=True)
 ax2.set_xlim(1,len(CLASS),emit=True)
 ax2.set_ylabel('% of kernels')
 ax2.set_xlabel('Layer')
-
 ax2.set_xticks(np.arange(1,len(CLASS)+1, len(CLASS)//5))
 
 ax2.legend(bbox_to_anchor=(-0.04, 0, 1.04, -0.15), loc=1,
            ncol=3, mode="expand", borderaxespad=0.,fontsize=14)
-
 plt.show()
 plt.close()
-fig.savefig('figures/nb_auxiliary_peaks_' + name_net, dpi = 300)
+fig.savefig('../figures/nb_auxiliary_peaks_' + name_net, dpi = 300)
 
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.plot(np.arange(1,len(CLASS)+1),(prop_2+prop_3+prop_4)*100,'k')
+plt.xlabel('Layer')
+plt.ylabel('Percentage of kernels')
+fig.tight_layout()
+plt.show()
+fig.savefig('../figures/nb_auxiliary_peaks_' + name_net,dpi = 300)
+
+plt.close(fig)
 
 # In[9]:
 PEAK_HSENSALL = list()
@@ -985,14 +1016,13 @@ D.DEFINE_PLT_RC()
 fig = plt.figure()
 ax = fig.add_subplot(111)
 h = np.histogram(DIST,bins = np.arange(7.5,190,15))
-ax.bar(h[1][:-1],h[0].astype(float)/len(DIST),width = h[1][1] -h[1][0], color ='#343837')
+ax.bar(h[1][:-1],h[0].astype(float)/len(DIST),width = h[1][1] -h[1][0], align = 'edge', color ='#343837')
 plt.xlabel('Distance from preferred hue (degrees)')
 plt.ylabel('Frequency')
 plt.xticks(range(0,190,30))
-
 fig.tight_layout()
 plt.show()
-fig.savefig('figures/distance_inter_peak_' + name_net,dpi = 300)
+fig.savefig('../figures/distance_inter_peak_' + name_net,dpi = 300)
 
 plt.close(fig)
 
