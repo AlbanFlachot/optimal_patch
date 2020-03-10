@@ -282,12 +282,12 @@ def PCA2RGB(x):
 
     
 def respo(X,t):
-	return np.sum((np.nanmax(X[:,1:],axis = -1)>t)*1)/(np.nanmean(X[:,1:],axis = -1).size)
+	return np.sum((np.nanmax(X[:,1:],axis = -1)>=t)*1)/(np.nanmean(X[:,1:],axis = -1).size)
 	#return np.sum((np.nanmax(X[:,:],axis = 0)>t)*1)/(np.nanmean(X[:,:],axis = 0).size)  #For chromatic contrast responsivity
 
 def respo2(X,t):
 	#return np.sum((np.nanmax(X[:,1:],axis = -1)>t)*1)/(np.nanmean(X[:,1:],axis = -1).size)
-	return np.sum((np.nanmax(X[:,:],axis = 0)>t)*1)/(np.nanmean(X[:,:],axis = 0).size)  #For chromatic contrast responsivity
+	return np.sum((np.nanmax(X[:,:],axis = 0)>=t)*1)/(np.nanmean(X[:,:],axis = 0).size)  #For chromatic contrast responsivity
 
 def RESPO(RESP,t1,t2,t3, resp_type = 1):
 	respt1 = np.zeros(len(RESP))

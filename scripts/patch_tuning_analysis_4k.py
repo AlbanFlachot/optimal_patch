@@ -11,12 +11,8 @@ sys.path.append('../')
 from utils import FUNCTIONS as F # script with a bunch of functions
 from utils import DISPLAYS as D # script with functions to display
 
-caffe_root = '/home/alban/caffe/'  # this file should be run from {caffe_root}/examples (otherwise change this line)
-#sys.path.insert(0, caffe_root + 'python')
 
-# If you get "No module named _caffe", either you have not built pycaffe or you have the wrong path.
-labels_file = caffe_root + 'data/ilsvrc12/synset_words.txt'
-labels = np.loadtxt(labels_file, str, delimiter='\t')
+
 
 	## Fit functions
 	#____________________________________________________________________________________________________________________
@@ -150,7 +146,8 @@ DIS_CR = F.DISTRIB_resp(RESP,Treshs)
 
 # In[9]:
 
-
+	
+	
 # plot global sensitivity proportions
 DIS_OCS = F.DISTRIB_resp(SENSITIVITY,Treshs, resp_type = 1)
 
@@ -280,7 +277,7 @@ for l in range(len(M_HSENS1)):
 	Arg_sel = list()  # List of preferred hues for this layer
 	for idx in np.where(Nb_col_select[l] > 0)[0]: # in the case of color slective kernels
 		pref_hues = PREF_HUES[P_sel[:,idx], idx] # pref hues found for kernel ''idx'' on hue selective segments
-		print(pref_hues)
+		#print(pref_hues)
 		if len(pref_hues) > 1: # if more than one segment is hue selective
 			pairs = np.array([i for i in itertools.combinations(pref_hues,2)]) # compute all possible combinations of pairs
 			diffs = [np.arccos(np.cos((i[0] -i[1])*np.pi/180))*180/np.pi for i in pairs] # angle diffs for each pair

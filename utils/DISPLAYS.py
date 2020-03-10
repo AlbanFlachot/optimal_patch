@@ -111,9 +111,9 @@ def PLOT_FIGURE(measure,respt1,respt2,respt3,Mean_resp):
 
 	plt.close(fig)
 
-def PLOT_FIGURE_GRADUATE_DISTRIB(DIS_R,measure):
+def PLOT_FIGURE_GRADUATE_DISTRIB(DIS_R, measure, name_net):
 
-	rect_ax4 = [0.1, 0.1, 0.6, 0.85]
+	rect_ax4 = [0.18, 0.18, 0.53, 0.77]
 	fig = plt.figure(figsize = (7,5))
 	ax4 = plt.axes(rect_ax4)
 	ax4.plot(np.arange(1,len(DIS_R)+1),DIS_R,'k',linewidth = 1)
@@ -139,11 +139,13 @@ def PLOT_FIGURE_GRADUATE_DISTRIB(DIS_R,measure):
 	plt.ylabel('Percentage of units')
 
 	ax4.set_xticks(np.arange(1,len(DIS_R)+1,len(DIS_R)//5))
-	ax4.legend(bbox_to_anchor=(1.01, 0, 0.42, 0.95), loc=1,
+	ax4.legend(bbox_to_anchor=(1.01, 0.1, 0.55, 0.95), loc=1,
            ncol=1, mode="expand", borderaxespad=0.,fontsize=20)
 	ax4.set_xlim([1,len(DIS_R)])
-	#fig.tight_layout()
+	ax4.set_ylim([0,100])
+	fig.tight_layout()
 	fig.show()
+	fig.savefig('../figures/' + measure + '_' + name_net,dpi = 300)
 	#print DIS_R[:,1]
 
 
@@ -248,8 +250,10 @@ def plot_horizontal_histo(DATA, Bins, y_label, title_fig, name_net):
     plt.show()
     fig.savefig('../figures/' + title_fig + '_' + name_net,dpi = 300)
     plt.close()
-    
-def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
+ 
+
+
+def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, color = False, mean = False):
     import math
     step_plot = math.ceil(float(len(DATA))/5)
     
@@ -348,4 +352,56 @@ def plot_vertical_histo(DATA, Bins, y_label, title_fig, name_net, mean = False):
     #fig.tight_layout()
     plt.show()
     fig.savefig('../figures/' + title_fig + '_' + name_net,dpi = 300)
-    plt.close() 
+    plt.close()
+
+
+
+
+def plot_vertical_histo2(DATA, Bins, y_label, title_fig, name_net, color_id = 'k', mean = False, rc = 1):
+	import math
+	step_plot = math.ceil(float(len(DATA))/5)
+	lay2dis = list(range(0,len(DATA)+1,int(step_plot))) # defines which layer to display given that we want to display only 5 and the nets have diferent nb of layers.
+	lay2dis[-1] = len(DATA)-1
+
+	# definitions for the axes
+	left, width = 0.12, 0.85
+	if rc == 0.5:
+		left, width = 0.18, 0.79
+	bottom, height = 0.12, 0.15
+	RECT_HIST = list()
+	RECT_HIST.append([left, bottom, width, height])
+
+	RECT_HIST.append([left, bottom + height + 0.03, width, height])
+	RECT_HIST.append([left, bottom + height + 0.03 + height + 0.03, width, height])
+	RECT_HIST.append([left, bottom + height + 0.03 + height + 0.03 + height + 0.03, width, height])
+	RECT_HIST.append([left, bottom + height + 0.03 + height + 0.03 + height + 0.03 + height + 0.03, width, height])
+
+	color_ID = color_id
+
+	fig = plt.figure(figsize = (7,9))
+
+	width_bars = Bins[1] - Bins[0] # width used for the bars of the bar plot
+
+	AX = list()
+	#import pdb; pdb.set_trace()
+	for l in range(5):
+		AX.append(plt.axes(RECT_HIST[l]))
+		X = DATA[lay2dis[l]][~np.isnan(DATA[lay2dis[l]])]
+		hist_hue = np.histogram( X,bins = Bins )
+		Y = 100*(hist_hue[0])/X.size
+		AX[l].bar(hist_hue[1][:-1],Y, width = width_bars,align = 'edge',color = color_ID)
+		if mean == True:
+			AX[l].vlines(X.mean(),0,1, color = 'red')
+		if l !=0:
+			AX[l].set_xticks([])
+		AX[l].set_yticks([int(Y.max())])
+		AX[l].text(Bins[-1]*0.8,Y.max()*0.7, 'Layer %s' %str(lay2dis[l]+1),ha='center')
+		#AX[l].set_ylabel('%s' %str(lay2dis[l]))
+		AX[l].set_xlim([Bins[0],Bins[-1]])
+	AX[0].set_xlabel(y_label)
+	fig.text(0.04, 0.52, 'Frequency (%)', ha='center', va='center',rotation = 90)
+
+	#fig.tight_layout()
+	plt.show()
+	fig.savefig('../figures/' + title_fig + '_' + name_net,dpi = 300)
+	plt.close() 

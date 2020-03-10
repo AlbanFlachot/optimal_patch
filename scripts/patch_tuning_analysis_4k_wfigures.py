@@ -12,9 +12,6 @@ from utils import FUNCTIONS as F # script with a bunch of functions
 from utils import DISPLAYS as D # script with functions to display
 
 
-	## Fit functions
-	#____________________________________________________________________________________________________________________
-
     
 # In[9]:
 ###__________________________________________________________________________________________________________________________________
@@ -23,8 +20,7 @@ import os
 if not os.path.exists('../figures'):
 		os.mkdir('../figures')
 
-name_net = 'VGG-19'
-
+name_net = 'VGG-16'
 print('We start analysis for net: ' + name_net)
 
 '''
@@ -36,6 +32,7 @@ MM* are the kernels' activations to color manipulations within segments *
 CLASS are the class given by the models for all stimuli.
 Good_Class gives the correct class for all stimuli
 '''
+
 r = open('../pickles/' + name_net + '_patches_4k_Sat.pickle','rb') 
 MAX, GREY,MM1,MM2,MM3,MM4,ROT,CLASS,Good_Class= pickle.load(r, encoding="bytes")
 r.close()
@@ -116,12 +113,15 @@ for l in range(0,len(MM1)):
 	SENS_SAT.append(SensSAT)
 	HUE_SAT.append(np.moveaxis(HueSat,0,-1))
 
+# In[9]:
+
+
+receptive_fields = {'AlexNet' : np.array([5,25,48,65,81])*2+1, 'VGG-16' : np.array([1,2,5,7,12,16,20,30,38,46,76,82,98])*2+1, 'VGG-19' : np.array([1,2,5,7,12,16,20,24,34,42,50,58,78,94,110,126])*2+1}
+
 t1 = 0.25
 t2 = 0.5
 t3 = 0.75
 
-
-# In[9]:
 
 
 # In[9]:
@@ -139,15 +139,15 @@ D.DEFINE_PLT_RC(type = 0.33)
 Treshs = np.array([0,1/8,2/8,3/8,4/8,5/8,6/8,7/8])
 #D.PLOT_FIGURE_GRADUATE_DISTRIB(RESP,Treshs,'CR')
 DIS_CR = F.DISTRIB_resp(RESP,Treshs)
-D.PLOT_FIGURE_GRADUATE_DISTRIB(DIS_CR,'CR')
+#D.PLOT_FIGURE_GRADUATE_DISTRIB(DIS_CR,'CR')
 
 D.plot_fig_summary(respt2,Mean_resp)
 # In[9]:
 
-
+D.DEFINE_PLT_RC(type = 0.33)
 # plot global sensitivity proportions
 DIS_OCS = F.DISTRIB_resp(SENSITIVITY,Treshs, resp_type = 1)
-D.PLOT_FIGURE_GRADUATE_DISTRIB(DIS_OCS,'OCS')
+D.PLOT_FIGURE_GRADUATE_DISTRIB(DIS_OCS,'CS$_{overall}$', name_net)
 
 
 print('Proportion of weakly color sensitive kernels in first layer is %f' %(DIS_OCS[0,0]-DIS_OCS[0,1]))
@@ -201,7 +201,7 @@ MEAN_M = np.zeros((len(CLASS)))
 
 count = 0
 for l in range(0,len(M_ROT)):
-	M = np.amax(np.stack((M_HSENS1[l],M_HSENS2[l],M_HSENS3[l],M_HSENS4[l]),axis = 1),axis = -1)
+	M = np.amax(np.stack((M_HSENS1[l],M_HSENS2[l],M_HSENS3[l],M_HSENS4[l]),axis = 1),axis = (-1))
 	MEAN_M[l] = np.mean(M)
 	DIS_M[l,0] = F.respo(M,Treshs[0])*100
 	DIS_M[l,1] = F.respo(M,Treshs[1])*100
@@ -213,14 +213,14 @@ for l in range(0,len(M_ROT)):
 	DIS_M[l,7] = F.respo(M,Treshs[7])*100
 	count +=1
 
-D.PLOT_FIGURE_GRADUATE_DISTRIB(DIS_M,'HS') 
+D.PLOT_FIGURE_GRADUATE_DISTRIB(DIS_M,'CS$_{hue}$',name_net) 
 
-
+print('Proportion of hue selective kernels in last layer is %f' %(DIS_M[-1,4]))
 
 # In[9]: Proportion of saturation sensitive kernels
 
 DIS_CCR = F.DISTRIB_resp(SENS_SAT,Treshs, resp_type = 0)
-D.PLOT_FIGURE_GRADUATE_DISTRIB(DIS_CCR,'CCR')
+D.PLOT_FIGURE_GRADUATE_DISTRIB(DIS_CCR,'CR', name_net)
 
 
 senssatt1,senssatt2,senssatt3,Mean_senssat,Std_senssat = F.RESPO(SENS_SAT,t1,t2,t3, resp_type = 0)
@@ -275,7 +275,7 @@ for l in range(len(M_HSENS1)):
 	Arg_sel = list()  # List of preferred hues for this layer
 	for idx in np.where(Nb_col_select[l] > 0)[0]: # in the case of color slective kernels
 		pref_hues = PREF_HUES[P_sel[:,idx], idx] # pref hues found for kernel ''idx'' on hue selective segments
-		print(pref_hues)
+		#print(pref_hues)
 		if len(pref_hues) > 1: # if more than one segment is hue selective
 			pairs = np.array([i for i in itertools.combinations(pref_hues,2)]) # compute all possible combinations of pairs
 			diffs = [np.arccos(np.cos((i[0] -i[1])*np.pi/180))*180/np.pi for i in pairs] # angle diffs for each pair
@@ -313,6 +313,20 @@ for l in range(len(M_HSENS1)):
 	ARG_SEL.append(Arg_sel)
 
 
+'''
+Proportion of single opponents
+'''
+P_sel_0 = np.array([np.amax(M_HSENS1[0], axis = -1) > t2, 
+						np.amax(M_HSENS2[0], axis = -1) > t2, 
+						np.amax(M_HSENS3[0], axis = -1) > t2, 
+						np.amax(M_HSENS4[0], axis = -1) > t2])
+
+PREF_HUES_0 = np.array([ARG_HSENS1[0][range(len(ARG_HSENS1[0])),np.argmax(M_HSENS1[0], axis = -1)], 
+								ARG_HSENS2[0][range(len(ARG_HSENS2[0])),np.argmax(M_HSENS2[0], axis = -1)], 
+								ARG_HSENS3[0][range(len(ARG_HSENS3[0])),np.argmax(M_HSENS3[0], axis = -1)], 
+								ARG_HSENS4[0][range(len(ARG_HSENS4[0])),np.argmax(M_HSENS4[0], axis = -1)]]) # array of preferred hues, all hue selectivities [nb segments, nb kernels]
+nb_col_selec_seg_0 = np.sum(P_sel_0,axis = 0)
+prop_sgl_opp = np.sum(np.std(PREF_HUES_0,axis = 0)[nb_col_selec_seg_0>0]<10)/(np.std(PREF_HUES_0,axis = 0)[nb_col_selec_seg_0>0]).size
 
 nb_lay = len(M_HSENS1)
 Theta = np.arange(0,2*np.pi,2*np.pi/nb_lay)
@@ -336,7 +350,7 @@ ax1 = plt.axes(rect_ax1)
 count =1
 for i in range(0,nb_lay,2):
 	h = np.histogram( Nb_col_select[i],bins = Bins )
-	ax1.plot( h[1][:-1], (h[0])/len(Nb_col_select[i]),linestyle = '-',color = color_id[i],label = 'Layer %s' %str(i+1),linewidth = 2)
+	ax1.plot( h[1][:-1], (h[0])/len(Nb_col_select[i]),linestyle = '-', color = color_id[i],label = 'Layer %s' %str(i+1),linewidth = 2)
 	count +=1
 
 
@@ -353,25 +367,56 @@ plt.show(fig)
 
 # In[9]:
 
-#### Horizontal histograms of hue tuning ------------------------------------------------------------------------------
+#### Plot number of hues ------------------------------------------------------------------------------
 
 D.DEFINE_PLT_RC(type = 0.5)
 
+Bins = np.arange(0,6,1)
+
+HIST_HUE_COUNT = np.zeros((len(Nb_col_select), len(Bins) - 1))
+
+Nb_hues = list()
+for l in range(len(Nb_col_select)):
+	Nb_hues.append(Nb_col_select[l][Nb_col_select[l]>t2])
+
+for l in range(len(Nb_col_select)):
+	hist_hue = np.histogram( Nb_hues[l],bins = Bins )
+	HIST_HUE_COUNT[l] = (hist_hue[0])/Nb_hues[l].size
 
 
-D.plot_horizontal_histo(Nb_col_select, np.arange(0,6,1), 'Number of hues', 'hue_count_t2', name_net)
-D.plot_vertical_histo(Nb_col_select, np.arange(0,6,1), 'Number of hues', 'hue_count_t2', name_net, mean = True)
+D.plot_vertical_histo2(Nb_hues, np.arange(1,6,1)-0.5, 'Number of hues', 'hue_count_t2', name_net, mean = False, rc = 0.5)
 
+D.DEFINE_PLT_RC()
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+p = ax.plot(receptive_fields[name_net], HIST_HUE_COUNT[:,2]*100, 'k')
+plt.xlabel('Kernel receptive field size (pixels)')
+plt.ylabel('Percentage')
+#plt.xticks(range(0,200,30))
+plt.ylim(0,100)
+fig.tight_layout()
+plt.show()
+fig.savefig('../figures/hue_count_vs_size_' + name_net,dpi = 300)
+plt.close(fig)
 
 # In[9]:
 
-#### Horizontal & vertical histograms of hue tuning ------------------------------------------------------------------------------
+#### vertical histograms of hue tuning ------------------------------------------------------------------------------
+
+hues_dis = np.arange(0,2*np.pi,2*np.pi/24)
+Sat = 0.7
+Lum = 0
+
+(x,y) = F.pol2cart(Sat, hues_dis)
+
+color_id = F.PCA2RGB(np.array([[np.zeros(hues_dis.size)],[x],[y]]).T)+0.5
+color_id = color_id.reshape((len(color_id),3))
 
 D.DEFINE_PLT_RC()
 hue4_histo = [np.concatenate(arr) for arr in ARG_SEL]
-D.plot_horizontal_histo(hue4_histo, np.arange(0,365,15), 'Hue (degrees)', 'histo_preferred_hues',name_net)
-D.plot_vertical_histo(hue4_histo, np.arange(0,365,15), 'Hue (degrees)', 'histo_preferred_hues',name_net)
 
+D.plot_vertical_histo2(hue4_histo, np.arange(0,365,15), 'Hue (degrees)', 'histo_preferred_hues', name_net, color_id = color_id)
 
 # In[9]:
 
@@ -394,15 +439,16 @@ for l in OPP:
 	FLAT_OPP = np.concatenate((FLAT_OPP,l))
 
 
-fig = plt.figure()
+D.DEFINE_PLT_RC(type = 0.5)
+fig = plt.figure(figsize = (7,9))
 ax = fig.add_subplot(111)
 h = np.histogram(FLAT_OPP,bins = np.arange(0,190,15))
 ax.bar(h[1][:-1],h[0].astype(float)/len(FLAT_OPP),width = h[1][1] -h[1][0], align = 'edge', color ='#343837')
-plt.xlabel('Distance between preferred hues (degrees)')
+plt.xlabel('Hue difference (degrees)')
 plt.ylabel('Frequency')
-plt.xticks(range(0,200,30))
+plt.xticks(range(0,200,60))
 
-fig.tight_layout()
+#fig.tight_layout()
 plt.show()
 fig.savefig('../figures/distance_pref_hues_' + name_net,dpi = 300)
 
@@ -743,12 +789,12 @@ D.DEFINE_PLT_RC(type = 1)
 
 
 from scipy.signal import find_peaks as fp
-'''
+
 
 
 def peak_detection(y,show = False):
-	Function which detects te number of peaks in a curve, according to a certain threshold.
-	   First peak must be 1/2 of the max and second peak must be 1/2 or more of the main peak, with a 1/4 minimum prominence
+	'''Function which detects te number of peaks in a curve, according to a certain threshold.
+	   First peak must be 1/2 of the max and second peak must be 1/2 or more of the main peak, with a 1/4 minimum prominence'''
 	
 	ydet = np.concatenate((y[-12:],y,y[:12])) # we repeat the curve a little bit such that peaks at borders are not neglected by algo
 	p, prop = fp( ydet, height=0, distance=4, prominence = (np.amax(y)/6,y.max()))
@@ -791,9 +837,9 @@ for l in range(0,len(CLASS)):
 	P_HSENS2.append(Result_peak_HSENS2)
 	P_HSENS3.append(Result_peak_HSENS3)
 	P_HSENS4.append(Result_peak_HSENS4)
-	P_ROT.append(Result_peak_rot)'''
+	P_ROT.append(Result_peak_rot)
 
-[P_HSENS1,P_HSENS2,P_HSENS3,P_HSENS4] = np.load('result_peak_detection_python3.npy',allow_pickle=True)
+#[P_HSENS1,P_HSENS2,P_HSENS3,P_HSENS4] = np.load('result_peak_detection_python3.npy',allow_pickle=True)
 
 NB_peaks1 = list()
 NB_peaks2 = list()
@@ -907,7 +953,7 @@ X1, Y1 = np.where((NB_peaks1[-1] == 1) & (M_HSENS1[l] > t2))
 X2, Y2 = np.where((NB_peaks1[-1] == 2) & (M_HSENS1[l] > t2))
 X31, Y31 = np.where((NB_peaks1[-1] == 3) & (M_HSENS1[l] > t2))
 X32, Y32 = np.where((NB_peaks2[-1] == 3) & (M_HSENS2[l] > t2))
-
+'''
 D.DEFINE_PLT_RC(type = 0.25)
 
 X, Y = np.where((NB_peaks1[-1] == 2) & (M_HSENS1[l] > t2))
@@ -964,7 +1010,7 @@ for i in range(len(X)):
     plt.show()
     plt.close()
     
-
+'''
 # In[9]: Distance between the main and auxiliary peak
 
 def tuning_w_peaks(nb_peaks, sens, nb, thr):
