@@ -787,24 +787,6 @@ D.DEFINE_PLT_RC(type = 1)
 
 
 
-
-from scipy.signal import find_peaks as fp
-
-
-
-def peak_detection(y,show = False):
-	'''Function which detects te number of peaks in a curve, according to a certain threshold.
-	   First peak must be 1/2 of the max and second peak must be 1/2 or more of the main peak, with a 1/4 minimum prominence'''
-	
-	ydet = np.concatenate((y[-12:],y,y[:12])) # we repeat the curve a little bit such that peaks at borders are not neglected by algo
-	p, prop = fp( ydet, height=0, distance=4, prominence = (np.amax(y)/6,y.max()))
-	idx = ((p-12 > -1) & (p-12 < 24))
-	p = (p - 12)[idx]
-	for key in prop.keys():
-		prop[key] = prop[key][idx]
-	return p, prop
-
-
 #Loop over all tuning curves to extract the peaks, their coordinates and properties
 
 
@@ -823,15 +805,15 @@ for l in range(0,len(CLASS)):
 	for K in range(len(CLASS[l])):
 		for sat in range(CLASS[l].shape[1]):
 			y = MM1[l][K,sat,:]
-			Result_peak_HSENS1[K,sat] = peak_detection(y)
+			Result_peak_HSENS1[K,sat] = F.peak_detection(y)
 			y = MM2[l][K,sat,:]
-			Result_peak_HSENS2[K,sat] = peak_detection(y)
+			Result_peak_HSENS2[K,sat] = F.peak_detection(y)
 			y = MM3[l][K,sat,:]
-			Result_peak_HSENS3[K,sat] = peak_detection(y)
+			Result_peak_HSENS3[K,sat] = F.peak_detection(y)
 			y = MM4[l][K,sat,:]
-			Result_peak_HSENS4[K,sat] = peak_detection(y)
+			Result_peak_HSENS4[K,sat] = F.peak_detection(y)
 			y = ROT[l][K,sat,:]
-			Result_peak_rot[K,sat] = peak_detection(y)
+			Result_peak_rot[K,sat] = F.peak_detection(y)
 	
 	P_HSENS1.append(Result_peak_HSENS1)
 	P_HSENS2.append(Result_peak_HSENS2)
@@ -863,12 +845,6 @@ for l in range(len(CLASS)):
 	NB_peaks3.append(nb_peaks3)
 	NB_peaks4.append(nb_peaks4)
 
-#Hue = np.arange(0,2*np.pi,2*np.pi/24)
-#y = MM1[-1][29,-1,:]
-#ydet = np.concatenate((y[-2:],y))
-#fp( ydet, height=(np.amax(y))/2, distance=4, prominence = (np.amax(y)/8,y.max()))
-
-#R1 = F.peak_detection(y, show = False)
 
 
 prop_null = np.zeros(len(CLASS))
@@ -1011,50 +987,19 @@ for i in range(len(X)):
     plt.close()
     
 '''
-# In[9]: Distance between the main and auxiliary peak
-
-def tuning_w_peaks(nb_peaks, sens, nb, thr):
-    '''
-    Function which slects the tuning curves showing a certain number of peaks while beaing above a certain sensitivity threshold.
-    If one partial kernel has several tuning curves satisfying the criteria at different chroma, we select only one (lower chroma) and delete the other. 
-    Inputs:
-        nb_peaks: array of number of peaks as identifies previously by our algo
-        sens: array of sensitivities of each tuning curves
-        nb: nb of peaks we require
-        thr: sensitivity threshold we require
-    Outputs:
-        X and Y: kernel and chroma indicies of tuning curves satisfying the criteria.
-    '''
-    X, Y = np.where((nb_peaks == 2) & (sens > thr))
-    for i in range(1,len(X)):
-        if (X[i] == X[i-1]) | (X[i] == X[i-2]):
-            X[i] = 1000
-            Y[i] = 1000
-    X = np.delete(X,np.where(X == 1000))
-    Y = np.delete(Y,np.where(Y == 1000))
-    return X, Y
-
-
-def distance(DIST,X, Y, P):
-    '''
-    Computes the distance inter-peak in azimuth arccos(cos(p2 - p1))
-    '''
-    for x in range(len(X)):
-       DIST.append(np.arccos(np.cos((P[X[x],Y[x],0][-1] - P[X[x],Y[x],0][0])*np.pi/12))*180/np.pi)
-    return DIST
 
 
 DIST = list()
 #for l in range(len(CLASS)-1,len(CLASS)):
 for l in range(len(CLASS)):
-    X21, Y21 = tuning_w_peaks(NB_peaks1[l], M_HSENS1[l], 2, t2)
-    X22, Y22 = tuning_w_peaks(NB_peaks2[l], M_HSENS2[l], 2, t2)
-    X23, Y23 = tuning_w_peaks(NB_peaks3[l], M_HSENS3[l], 2, t2)
-    X24, Y24 = tuning_w_peaks(NB_peaks4[l], M_HSENS4[l], 2, t2)
-    DIST = distance(DIST,X21, Y21, P_HSENS1[l])
-    DIST = distance(DIST,X22, Y22, P_HSENS2[l])
-    DIST = distance(DIST,X23, Y23, P_HSENS3[l])
-    DIST = distance(DIST,X24, Y24, P_HSENS4[l])
+    X21, Y21 = F.tuning_w_peaks(NB_peaks1[l], M_HSENS1[l], 2, t2)
+    X22, Y22 = F.tuning_w_peaks(NB_peaks2[l], M_HSENS2[l], 2, t2)
+    X23, Y23 = F.tuning_w_peaks(NB_peaks3[l], M_HSENS3[l], 2, t2)
+    X24, Y24 = F.tuning_w_peaks(NB_peaks4[l], M_HSENS4[l], 2, t2)
+    DIST = F.distance(DIST,X21, Y21, P_HSENS1[l])
+    DIST = F.distance(DIST,X22, Y22, P_HSENS2[l])
+    DIST = F.distance(DIST,X23, Y23, P_HSENS3[l])
+    DIST = F.distance(DIST,X24, Y24, P_HSENS4[l])
     
 
 D.DEFINE_PLT_RC()

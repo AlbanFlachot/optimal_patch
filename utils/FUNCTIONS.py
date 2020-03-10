@@ -420,29 +420,19 @@ def prop_misclass_all(CLASS, SENS, t2):
 	return prop_A, prop_non_A, prop_all
 
 
+
 def peak_detection(y,show = False):
 	'''Function which detects te number of peaks in a curve, according to a certain threshold.
-	   First peak must be 1/8 of the max and second peak must be 1/3 or more of the main peak'''
-	#print (np.amax(y) - np.amin(y))
-	#yhat = savitzky_golay(np.concatenate((y[-2:],y)), 5, 2) # window size 51, polynomial order 3
-	if (np.amax(y) - np.amin(y)) > np.amax(y)/2: # if the curve shows a variation of at least 1/4, we can conduct the analysis.
-		ydet = np.concatenate((y[-2:],y))
-		p = detect_peaks( ydet, mph=(np.amax(y)-np.amin(y))/2 + np.amin(y), mpd=4, threshold=0, edge='rising',kpsh=False, valley=False, show=show, ax=None)
-		#return p,len(p)
-		if len(p) <2: # if the tuning curve has 1 peak only or less
-			return np.array([float(len(p)),False,False])
-		else:
-			Boole = 0
-			sec_peak = 0
-			for i in range(len(p)):
-				if (10 < np.absolute(p[i] - np.argmax(ydet)) < 14): #if there is at least a secondary peak, find whether it 
-					Boole = 1
-					sec_peak = ((ydet[p[i]]-np.amin(ydet))/ (np.amax(ydet)-np.amin(ydet)))
+	   First peak must be 1/2 of the max and second peak must be 1/2 or more of the main peak, with a 1/4 minimum prominence'''
+	from scipy.signal import find_peaks as fp
+	ydet = np.concatenate((y[-12:],y,y[:12])) # we repeat the curve a little bit such that peaks at borders are not neglected by algo
+	p, prop = fp( ydet, height=0, distance=4, prominence = (np.amax(y)/6,y.max()))
+	idx = ((p-12 > -1) & (p-12 < 24))
+	p = (p - 12)[idx]
+	for key in prop.keys():
+		prop[key] = prop[key][idx]
+	return p, prop
 
-			return np.array([float(len(p)),Boole,sec_peak])
-	else:
-		#print ('no variation')
-		return 0,0,0 
 
 def peak_detection2(y):
 	'''Function which detects te number of peaks in a curve, according to a certain threshold.
@@ -458,14 +448,15 @@ def peak_detection2(y):
 		return np.nan
 
   
- 
-  
 def conversion_dist_arg(dist_arg,radian):
+	'''
+	Function to compute angular distance (e.g: 0° - 280° = 360°- 80° = 80°)
+	'''
+	
 	if ~radian:
 		dist_arg = dist_arg*np.pi/180
 
 	dist = np.arccos(np.cos(dist_arg))
-	#dist = dist_arg
 	if ~radian:
 		dist = dist*180/np.pi
 
@@ -484,4 +475,35 @@ def dist_arg_max(p,argmax):
 def dist_arg_max_loop(dist_arg_max_HSENSall,ARG_HSENS,y):
 	p = peak_detection2(y)
 	return np.concatenate((dist_arg_max_HSENSall,dist_arg_max(p,ARG_HSENS/15)))
+
+	
+def tuning_w_peaks(nb_peaks, sens, nb, thr):
+    '''
+    Function which selects the tuning curves showing a certain number of peaks while beaing above a certain sensitivity threshold.
+    If one partial kernel has several tuning curves satisfying the criteria at different chroma, we select only one (lower chroma) and delete the other. 
+    Inputs:
+        nb_peaks: array of number of peaks as identifies previously by our algo
+        sens: array of sensitivities of each tuning curves
+        nb: nb of peaks we require
+        thr: sensitivity threshold we require
+    Outputs:
+        X and Y: kernel and chroma indicies of tuning curves satisfying the criteria.
+    '''
+    X, Y = np.where((nb_peaks == 2) & (sens > thr))
+    for i in range(1,len(X)):
+        if (X[i] == X[i-1]) | (X[i] == X[i-2]):
+            X[i] = 1000
+            Y[i] = 1000
+    X = np.delete(X,np.where(X == 1000))
+    Y = np.delete(Y,np.where(Y == 1000))
+    return X, Y
+
+
+def distance(DIST,X, Y, P):
+    '''
+    Computes the distance inter-peak in azimuth arccos(cos(p2 - p1))
+    '''
+    for x in range(len(X)):
+       DIST.append(np.arccos(np.cos((P[X[x],Y[x],0][-1] - P[X[x],Y[x],0][0])*np.pi/12))*180/np.pi)
+    return DIST
 
